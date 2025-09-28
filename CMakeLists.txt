@@ -27,4 +27,7 @@ option(BUILD_EXAMPLES "Build examples" ON)
 if(BUILD_EXAMPLES)
     add_executable(basic_usage examples/basic_usage.cpp)
     target_link_libraries(basic_usage PRIVATE eigenwave)
+
+    add_executable(slicing_broadcasting_demo examples/slicing_broadcasting_demo.cpp)
+    target_link_libraries(slicing_broadcasting_demo PRIVATE eigenwave)
 endif()
