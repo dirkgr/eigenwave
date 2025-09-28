@@ -126,6 +126,11 @@ int main() {
 - `expand_dims_front/back()` - Add singleton dimensions
 - `squeeze()` - Remove singleton dimensions
 
+## Technical Documentation
+
+- [Architecture Overview](docs/ARCHITECTURE.md) - High-level design and components
+- [Storage Internals](docs/STORAGE_INTERNALS.md) - Detailed memory management and storage mechanisms
+
 ## API Documentation
 
 ### Creating Tensors
