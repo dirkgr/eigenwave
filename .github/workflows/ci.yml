@@ -36,10 +36,7 @@ jobs:
         echo "CXX=${{ matrix.compiler.cxx }}" >> $GITHUB_ENV
 
     - name: Configure CMake
-      run: |
-        cmake -B build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_CXX_STANDARD=17
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17
 
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
@@ -63,26 +60,13 @@ jobs:
         sudo apt-get install -y cppcheck clang-tidy
 
     - name: Run cppcheck
-      run: |
-        cppcheck --enable=all \
-                 --suppress=missingIncludeSystem \
-                 --inline-suppr \
-                 --error-exitcode=1 \
-                 include/
+      run: cppcheck --enable=all --suppress=missingIncludeSystem --inline-suppr --error-exitcode=1 include/
 
     - name: Configure CMake for clang-tidy
-      run: |
-        cmake -B build \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Run clang-tidy
-      run: |
-        find include -name "*.hpp" -exec clang-tidy {} \
-          -p build \
-          --checks='-*,modernize-*,performance-*,readability-*,bugprone-*,-modernize-use-trailing-return-type' \
-          --warnings-as-errors='*' \;
+      run: find include -name "*.hpp" -exec clang-tidy {} -p build --checks='-*,modernize-*,performance-*,readability-*,bugprone-*,-modernize-use-trailing-return-type' --warnings-as-errors='*' \;
 
   coverage:
     runs-on: ubuntu-latest
@@ -96,13 +80,7 @@ jobs:
         sudo apt-get install -y gcovr
 
     - name: Configure CMake with Coverage
-      run: |
-        cmake -B build \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_FLAGS="--coverage" \
-          -DCMAKE_C_FLAGS="--coverage" \
-          -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
-          -DCMAKE_CXX_STANDARD=17
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" -DCMAKE_C_FLAGS="--coverage" -DCMAKE_EXE_LINKER_FLAGS="--coverage" -DCMAKE_CXX_STANDARD=17
 
     - name: Build
       run: cmake --build build --parallel
@@ -115,13 +93,7 @@ jobs:
         ctest --verbose --output-on-failure -E "BroadcastView" || echo "Some tests excluded - see known-issues.md"
 
     - name: Generate Coverage Report
-      run: |
-        gcovr --root . \
-              --exclude 'build/*' \
-              --exclude 'tests/*' \
-              --exclude '_deps/*' \
-              --print-summary \
-              --xml coverage.xml
+      run: gcovr --root . --exclude 'build/*' --exclude 'tests/*' --exclude '_deps/*' --print-summary --xml coverage.xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
