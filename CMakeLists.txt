@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.14)
+project(eigenwave VERSION 0.1.0 LANGUAGES CXX)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Include directories
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+# Create header-only library interface
+add_library(eigenwave INTERFACE)
+target_include_directories(eigenwave INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+# Enable testing
+enable_testing()
+
+# Add subdirectories
+add_subdirectory(tests)
+
+# Build examples optionally
+option(BUILD_EXAMPLES "Build examples" ON)
+if(BUILD_EXAMPLES)
+    add_executable(basic_usage examples/basic_usage.cpp)
+    target_link_libraries(basic_usage PRIVATE eigenwave)
+endif()
