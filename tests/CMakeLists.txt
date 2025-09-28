@@ -10,8 +10,9 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-# Create test executable
+# Create test executables
 add_executable(test_tensor test_tensor.cpp)
+add_executable(test_slicing_broadcasting test_slicing_broadcasting.cpp)
 
 # Link against gtest and eigenwave
 target_link_libraries(test_tensor
@@ -21,6 +22,14 @@ target_link_libraries(test_tensor
     gtest
 )
 
+target_link_libraries(test_slicing_broadcasting
+    PRIVATE
+    eigenwave
+    gtest_main
+    gtest
+)
+
 # Add test discovery
 include(GoogleTest)
 gtest_discover_tests(test_tensor)
+gtest_discover_tests(test_slicing_broadcasting)
