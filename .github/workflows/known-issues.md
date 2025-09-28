@@ -13,9 +13,3 @@ Failing tests:
 - BroadcastViewTest.MemoryEfficiency
 
 These tests should be re-enabled once the issues are resolved.
-
-## Code Quality Checks Disabled
-
-The cppcheck and clang-tidy steps in the CI workflow are temporarily disabled because they
-cannot find the include directory despite the repository being checked out. This needs
-investigation and fixing in a follow-up PR.

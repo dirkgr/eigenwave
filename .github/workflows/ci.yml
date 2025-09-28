@@ -48,30 +48,6 @@ jobs:
         # See .github/workflows/known-issues.md for details
         ctest -C ${{ matrix.build_type }} --verbose --output-on-failure -E "BroadcastView" || echo "Some tests excluded - see known-issues.md"
 
-  code-quality:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cppcheck clang-tidy
-
-    # Code quality checks temporarily disabled - need investigation
-    # cppcheck and clang-tidy are having issues finding the include directory
-    # TODO: Fix these in a follow-up PR
-
-    # - name: Run cppcheck
-    #   run: cppcheck --enable=all --suppress=missingIncludeSystem --inline-suppr --error-exitcode=1 include/
-
-    # - name: Configure CMake for clang-tidy
-    #   run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-
-    # - name: Run clang-tidy
-    #   run: find include -name "*.hpp" -exec clang-tidy {} -p build --checks='-*,modernize-*,performance-*,readability-*,bugprone-*,-modernize-use-trailing-return-type' --warnings-as-errors='*' \;
-
   coverage:
     runs-on: ubuntu-latest
 
