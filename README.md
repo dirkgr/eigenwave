@@ -1,5 +1,8 @@
 # EigenWave
 
+[![CI](https://github.com/dirkgr/eigenwave/actions/workflows/ci.yml/badge.svg)](https://github.com/dirkgr/eigenwave/actions/workflows/ci.yml)
+[![PR Tests](https://github.com/dirkgr/eigenwave/actions/workflows/pr-tests.yml/badge.svg)](https://github.com/dirkgr/eigenwave/actions/workflows/pr-tests.yml)
+
 A header-only C++ tensor math library with compile-time dimension checking, inspired by NumPy but with static typing for safer tensor operations.
 
 ## Features

@@ -16,14 +16,17 @@ target_include_directories(eigenwave INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 
-# Enable testing
-enable_testing()
+# Options
+option(BUILD_TESTS "Build tests" ON)
+option(BUILD_EXAMPLES "Build examples" ON)
 
-# Add subdirectories
-add_subdirectory(tests)
+# Enable testing if building tests
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # Build examples optionally
-option(BUILD_EXAMPLES "Build examples" ON)
 if(BUILD_EXAMPLES)
     add_executable(basic_usage examples/basic_usage.cpp)
     target_link_libraries(basic_usage PRIVATE eigenwave)
