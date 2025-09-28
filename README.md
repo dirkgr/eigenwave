@@ -119,7 +119,9 @@ int main() {
 - `range()` - Create slice ranges with start, stop, and step
 
 ### Broadcasting Operations
+- **O(1) broadcast views** - Broadcasting creates views, not copies
 - Automatic broadcasting in arithmetic operations
+- `BroadcastView` - Virtual broadcasting without data duplication
 - `broadcast_1d_to_2d_cols()` - Broadcast vector to matrix columns
 - `broadcast_1d_to_2d_rows()` - Broadcast vector to matrix rows
 - `reshape()` - Change tensor dimensions (preserving size)

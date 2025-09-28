@@ -99,7 +99,49 @@ For example:
 
 The `TensorView` class provides **non-owning views** into tensor data with custom strides, enabling slicing and submatrix extraction without copying data.
 
-### Storage Declaration
+## BroadcastView Storage
+
+### Overview
+
+The `BroadcastView` class provides **virtual broadcasting** of tensors to larger shapes without copying data. It uses stride manipulation to repeat elements as needed.
+
+### BroadcastView Declaration
+
+```cpp
+template<typename T, size_t... OrigDims, size_t... BroadcastDims>
+class BroadcastView {
+private:
+    const T* data_ptr_;                              // Pointer to original data
+    std::array<size_t, broadcast_ndim> effective_strides_; // Strides for broadcasting
+    // ...
+};
+```
+
+### Broadcasting Characteristics
+
+1. **Zero-Copy Broadcasting**: No data duplication, just stride manipulation
+2. **O(1) Creation**: Creating a broadcast view is constant time
+3. **Lazy Evaluation**: Elements are computed on access
+4. **Stride Tricks**: Uses 0-strides to repeat elements
+5. **Virtual Expansion**: Makes small tensors appear larger
+
+### How Broadcasting Works
+
+Broadcasting uses "stride tricks" where a stride of 0 causes the same element to be repeated:
+
+```cpp
+// Broadcasting a vector [1, 2, 3] to a 2x3 matrix:
+// Original: [1, 2, 3]
+// Broadcast result (virtual):
+// [[1, 2, 3],
+//  [1, 2, 3]]
+
+// Strides: [0, 1]
+// - stride[0] = 0: Moving to next row doesn't change position (repeat row)
+// - stride[1] = 1: Moving to next column advances by 1 element
+```
+
+### TensorView Storage Declaration
 
 ```cpp
 template<typename T, size_t... ViewDims>

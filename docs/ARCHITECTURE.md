@@ -165,10 +165,11 @@ class DynamicTensor;  // Heap-allocated, runtime dimensions
 |-----------|------------|-------|
 | Element access | O(1) | Direct array indexing |
 | Slice creation | O(1) | Only creates view metadata |
+| Broadcast view creation | O(1) | Only sets up strides |
 | Element-wise ops | O(n) | n = tensor size |
 | Reductions | O(n) | Single pass through data |
-| Broadcasting | O(n) | n = result tensor size |
 | Reshape | O(n) | Requires data copy |
+| Broadcast materialization | O(n) | Only when converting view to tensor |
 
 ### Space Complexity
 
