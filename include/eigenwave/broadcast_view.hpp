@@ -128,6 +128,15 @@ auto broadcast_vector_to_matrix(const Tensor<T, D2>& vec) {
     return BroadcastView<T, std::index_sequence<D2>, std::index_sequence<D1, D2>>(vec);
 }
 
+// Helper function to broadcast column vector to matrix
+template<typename T, size_t D1, size_t D2>
+auto broadcast_column_to_matrix(const Tensor<T, D1>& vec) {
+    // Broadcasting [D1] -> [D1, D2]
+    // Each column will be identical to the vector
+    // We reshape [D1] to [D1, 1] then broadcast to [D1, D2]
+    return BroadcastView<T, std::index_sequence<D1>, std::index_sequence<D1, D2>>(vec);
+}
+
 // Helper for scalar broadcasting (though scalar is a special case)
 template<typename T, size_t... Dims>
 class ScalarBroadcastView {

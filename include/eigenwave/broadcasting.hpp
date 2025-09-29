@@ -2,57 +2,37 @@
 #define EIGENWAVE_BROADCASTING_HPP
 
 #include "tensor.hpp"
+#include "broadcast_view.hpp"
 #include <algorithm>
 #include <type_traits>
 #include <utility>
 
 namespace eigenwave {
 
-// Broadcast binary operation for scalars
-template<typename T, typename BinaryOp>
-Tensor<T, 2, 2> broadcast_binary_op(const Tensor<T, 1>& vec,
-                                    const Tensor<T, 2, 2>& mat,
-                                    BinaryOp op,
-                                    bool vec_first = true) {
-    Tensor<T, 2, 2> result;
+// Note: This file provides convenience functions for broadcasting operations.
+// These functions now use O(1) broadcast views internally and only materialize
+// when returning the final result.
 
-    // Broadcasting a vector across rows
-    for (size_t i = 0; i < 2; ++i) {
-        for (size_t j = 0; j < 2; ++j) {
-            if (vec_first) {
-                result(i, j) = op(vec(0), mat(i, j));
-            } else {
-                result(i, j) = op(mat(i, j), vec(0));
-            }
-        }
-    }
-
-    return result;
-}
-
-// Specialized broadcasting for common cases
-
-// Broadcasting scalar to tensor
+// Broadcasting scalar to tensor (creates a tensor filled with the scalar value)
 template<typename T, size_t... Dims>
 Tensor<T, Dims...> broadcast_scalar(T scalar, const Tensor<T, Dims...>& shape_tensor) {
     return Tensor<T, Dims...>(scalar);
 }
 
-// Broadcasting 1D to 2D (along columns)
+// Broadcasting 1D to 2D (along columns) - each row is identical to the vector
+// Uses O(1) broadcast view internally
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> broadcast_1d_to_2d_cols(const Tensor<T, D2>& vec) {
-    Tensor<T, D1, D2> result;
-    for (size_t i = 0; i < D1; ++i) {
-        for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j);
-        }
-    }
-    return result;
+    auto view = broadcast_vector_to_matrix<T, D1, D2>(vec);
+    return view.materialize();
 }
 
-// Broadcasting 1D to 2D (along rows)
+// Broadcasting 1D to 2D (along rows) - each column is identical
+// Note: This broadcasts a column vector [D1] to [D1, D2]
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> broadcast_1d_to_2d_rows(const Tensor<T, D1>& vec) {
+    // This is a special case that doesn't fit standard broadcasting rules
+    // We keep the simple implementation for clarity
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
@@ -63,12 +43,14 @@ Tensor<T, D1, D2> broadcast_1d_to_2d_rows(const Tensor<T, D1>& vec) {
 }
 
 // Broadcast addition for vector and matrix
+// Uses O(1) broadcast view internally
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator+(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) + mat(i, j);
+            result(i, j) = broadcast_view(i, j) + mat(i, j);
         }
     }
     return result;
@@ -80,12 +62,14 @@ Tensor<T, D1, D2> operator+(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 }
 
 // Broadcast subtraction for vector and matrix
+// Uses O(1) broadcast view internally
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator-(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& vec) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = mat(i, j) - vec(j);
+            result(i, j) = mat(i, j) - broadcast_view(i, j);
         }
     }
     return result;
@@ -93,22 +77,25 @@ Tensor<T, D1, D2> operator-(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator-(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) - mat(i, j);
+            result(i, j) = broadcast_view(i, j) - mat(i, j);
         }
     }
     return result;
 }
 
 // Broadcast multiplication for vector and matrix
+// Uses O(1) broadcast view internally
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator*(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) * mat(i, j);
+            result(i, j) = broadcast_view(i, j) * mat(i, j);
         }
     }
     return result;
@@ -120,12 +107,14 @@ Tensor<T, D1, D2> operator*(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 }
 
 // Broadcast division for vector and matrix
+// Uses O(1) broadcast view internally
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator/(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& vec) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = mat(i, j) / vec(j);
+            result(i, j) = mat(i, j) / broadcast_view(i, j);
         }
     }
     return result;
@@ -133,16 +122,18 @@ Tensor<T, D1, D2> operator/(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator/(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) / mat(i, j);
+            result(i, j) = broadcast_view(i, j) / mat(i, j);
         }
     }
     return result;
 }
 
-// Helper function to explicitly broadcast a tensor to a new shape
+// Helper function to explicitly broadcast a vector to a square matrix
+// Each row is identical to the input vector
 template<typename T, size_t D>
 Tensor<T, D, D> broadcast_to_square(const Tensor<T, D>& vec) {
     return broadcast_1d_to_2d_cols<T, D, D>(vec);
