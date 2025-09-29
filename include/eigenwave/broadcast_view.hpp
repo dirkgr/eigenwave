@@ -162,12 +162,10 @@ auto broadcast_expand_dims_front(const Tensor<T, Dims...>& tensor) {
 }
 
 // Binary operations with broadcast views
-template<typename T, size_t... ADims, size_t... BDims, size_t... ResultDims, typename BinaryOp>
-Tensor<T, ResultDims...> broadcast_binary_op(
-    const Tensor<T, ADims...>& a,
-    const Tensor<T, BDims...>& b,
-    BinaryOp op) {
-
+// Note: This is a placeholder - full implementation would compute ResultDims
+// from ADims and BDims based on NumPy broadcasting rules
+template<typename T, typename BinaryOp, size_t... ResultDims>
+Tensor<T, ResultDims...> broadcast_binary_op_impl(BinaryOp op) {
     // Create broadcast views if needed
     // This is a simplified version - full implementation would determine
     // ResultDims based on NumPy broadcasting rules
@@ -201,53 +199,73 @@ auto add(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
 
 } // namespace broadcast_ops
 
-// Check if broadcasting is possible between two shapes
+// Helper to check broadcasting compatibility using index sequences
+template<typename Shape1, typename Shape2>
+struct can_broadcast_helper;
+
 template<size_t... Dims1, size_t... Dims2>
-constexpr bool can_broadcast() {
-    constexpr size_t shape1[] = {Dims1...};
-    constexpr size_t shape2[] = {Dims2...};
-    constexpr size_t ndim1 = sizeof...(Dims1);
-    constexpr size_t ndim2 = sizeof...(Dims2);
+struct can_broadcast_helper<std::index_sequence<Dims1...>, std::index_sequence<Dims2...>> {
+    static constexpr bool value() {
+        constexpr size_t shape1[] = {Dims1...};
+        constexpr size_t shape2[] = {Dims2...};
+        constexpr size_t ndim1 = sizeof...(Dims1);
+        constexpr size_t ndim2 = sizeof...(Dims2);
 
-    // Broadcasting rules: dimensions are compatible if:
-    // 1. They are equal, or
-    // 2. One of them is 1
-    size_t i = ndim1 - 1;
-    size_t j = ndim2 - 1;
-
-    while (i < ndim1 && j < ndim2) {
-        if (shape1[i] != shape2[j] && shape1[i] != 1 && shape2[j] != 1) {
-            return false;
+        if constexpr (ndim1 == 0 || ndim2 == 0) {
+            return true;
         }
-        if (i == 0 || j == 0) break;
-        --i;
-        --j;
-    }
 
-    return true;
-}
+        // Check dimensions from right to left
+        size_t min_ndim = (ndim1 < ndim2) ? ndim1 : ndim2;
+        for (size_t k = 0; k < min_ndim; ++k) {
+            size_t dim1 = shape1[ndim1 - 1 - k];
+            size_t dim2 = shape2[ndim2 - 1 - k];
+            if (dim1 != dim2 && dim1 != 1 && dim2 != 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+// Check if broadcasting is possible between two shapes
+template<size_t... Dims1>
+struct can_broadcast_impl {
+    template<size_t... Dims2>
+    static constexpr bool with() {
+        return can_broadcast_helper<
+            std::index_sequence<Dims1...>,
+            std::index_sequence<Dims2...>
+        >::value();
+    }
+};
 
 // Compute broadcast result shape
+template<typename Shape1, typename Shape2>
+struct broadcast_shape_helper;
+
 template<size_t... Dims1, size_t... Dims2>
-constexpr auto broadcast_shape() {
-    constexpr size_t shape1[] = {Dims1...};
-    constexpr size_t shape2[] = {Dims2...};
-    constexpr size_t ndim1 = sizeof...(Dims1);
-    constexpr size_t ndim2 = sizeof...(Dims2);
-    constexpr size_t result_ndim = std::max(ndim1, ndim2);
+struct broadcast_shape_helper<std::index_sequence<Dims1...>, std::index_sequence<Dims2...>> {
+    static constexpr auto compute() {
+        constexpr size_t shape1[] = {Dims1...};
+        constexpr size_t shape2[] = {Dims2...};
+        constexpr size_t ndim1 = sizeof...(Dims1);
+        constexpr size_t ndim2 = sizeof...(Dims2);
+        constexpr size_t result_ndim = (ndim1 > ndim2) ? ndim1 : ndim2;
 
-    std::array<size_t, result_ndim> result{};
+        std::array<size_t, result_ndim> result{};
 
-    // Fill from the right
-    for (size_t k = 0; k < result_ndim; ++k) {
-        size_t dim1 = (k < ndim1) ? shape1[ndim1 - 1 - k] : 1;
-        size_t dim2 = (k < ndim2) ? shape2[ndim2 - 1 - k] : 1;
+        // Fill from the right
+        for (size_t k = 0; k < result_ndim; ++k) {
+            size_t dim1 = (k < ndim1) ? shape1[ndim1 - 1 - k] : 1;
+            size_t dim2 = (k < ndim2) ? shape2[ndim2 - 1 - k] : 1;
 
-        result[result_ndim - 1 - k] = std::max(dim1, dim2);
+            result[result_ndim - 1 - k] = (dim1 > dim2) ? dim1 : dim2;
+        }
+
+        return result;
     }
-
-    return result;
-}
+};
 
 } // namespace eigenwave
 
