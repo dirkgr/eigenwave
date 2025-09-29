@@ -2,6 +2,7 @@
 #include <eigenwave/operations.hpp>
 #include <eigenwave/slicing.hpp>
 #include <eigenwave/broadcasting.hpp>
+#include <eigenwave/broadcast_view.hpp>
 #include <iostream>
 #include <iomanip>
 
@@ -142,21 +143,22 @@ int main() {
     std::cout << "Matrix * Vector (element-wise broadcast):" << std::endl;
     prod.print();
 
-    std::cout << "2.2 Broadcasting 1D to 2D:" << std::endl;
-    std::cout << "---------------------------" << std::endl;
+    std::cout << "2.2 Implicit vs Explicit Broadcasting:" << std::endl;
+    std::cout << "--------------------------------------" << std::endl;
 
     Tensor<float, 3> row_vec{1, 2, 3};
-    Tensor<float, 2> col_vec{10, 20};
 
-    // Broadcast to columns (each row is the same)
-    auto broadcast_cols = broadcast_1d_to_2d_cols<float, 2, 3>(row_vec);
-    std::cout << "Broadcast [1,2,3] to 2x3 (along columns):" << std::endl;
-    broadcast_cols.print();
+    // Implicit broadcasting through operators
+    Tensor<float, 2, 3> zeros = Tensor<float, 2, 3>::zeros();
+    auto implicit_broadcast = zeros + row_vec;
+    std::cout << "Implicit broadcast: zeros + [1,2,3]:" << std::endl;
+    implicit_broadcast.print();
 
-    // Broadcast to rows (each column is the same)
-    auto broadcast_rows = broadcast_1d_to_2d_rows<float, 2, 3>(col_vec);
-    std::cout << "Broadcast [10,20] to 2x3 (along rows):" << std::endl;
-    broadcast_rows.print();
+    // Explicit broadcasting using views (when you need the broadcast tensor itself)
+    auto broadcast_view = broadcast_vector_to_matrix<float, 2, 3>(row_vec);
+    auto explicit_broadcast = broadcast_view.materialize();
+    std::cout << "Explicit broadcast view materialized:" << std::endl;
+    explicit_broadcast.print();
 
     std::cout << "2.3 Reshape Operations:" << std::endl;
     std::cout << "------------------------" << std::endl;

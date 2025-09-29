@@ -123,10 +123,9 @@ int main() {
 
 ### Broadcasting Operations
 - **O(1) broadcast views** - Broadcasting creates views, not copies
-- Automatic broadcasting in arithmetic operations
+- **NumPy-style broadcasting** - Automatic broadcasting in arithmetic operations
 - `BroadcastView` - Virtual broadcasting without data duplication
-- `broadcast_1d_to_2d_cols()` - Broadcast vector to matrix columns
-- `broadcast_1d_to_2d_rows()` - Broadcast vector to matrix rows
+- `broadcast_vector_to_matrix()` - Create explicit broadcast view
 - `reshape()` - Change tensor dimensions (preserving size)
 - `expand_dims_front/back()` - Add singleton dimensions
 - `squeeze()` - Remove singleton dimensions

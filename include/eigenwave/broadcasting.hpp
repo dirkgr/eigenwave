@@ -2,73 +2,34 @@
 #define EIGENWAVE_BROADCASTING_HPP
 
 #include "tensor.hpp"
+#include "broadcast_view.hpp"
 #include <algorithm>
 #include <type_traits>
 #include <utility>
 
 namespace eigenwave {
 
-// Broadcast binary operation for scalars
-template<typename T, typename BinaryOp>
-Tensor<T, 2, 2> broadcast_binary_op(const Tensor<T, 1>& vec,
-                                    const Tensor<T, 2, 2>& mat,
-                                    BinaryOp op,
-                                    bool vec_first = true) {
-    Tensor<T, 2, 2> result;
+// Note: This file implements NumPy-style broadcasting for tensors.
+// Broadcasting rules:
+// 1. Dimensions are aligned from the right
+// 2. Dimensions of size 1 broadcast to any size
+// 3. Missing dimensions are treated as size 1
 
-    // Broadcasting a vector across rows
-    for (size_t i = 0; i < 2; ++i) {
-        for (size_t j = 0; j < 2; ++j) {
-            if (vec_first) {
-                result(i, j) = op(vec(0), mat(i, j));
-            } else {
-                result(i, j) = op(mat(i, j), vec(0));
-            }
-        }
-    }
-
-    return result;
-}
-
-// Specialized broadcasting for common cases
-
-// Broadcasting scalar to tensor
+// Broadcasting scalar to tensor (fills tensor with scalar value)
 template<typename T, size_t... Dims>
 Tensor<T, Dims...> broadcast_scalar(T scalar, const Tensor<T, Dims...>& shape_tensor) {
     return Tensor<T, Dims...>(scalar);
 }
 
-// Broadcasting 1D to 2D (along columns)
-template<typename T, size_t D1, size_t D2>
-Tensor<T, D1, D2> broadcast_1d_to_2d_cols(const Tensor<T, D2>& vec) {
-    Tensor<T, D1, D2> result;
-    for (size_t i = 0; i < D1; ++i) {
-        for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j);
-        }
-    }
-    return result;
-}
-
-// Broadcasting 1D to 2D (along rows)
-template<typename T, size_t D1, size_t D2>
-Tensor<T, D1, D2> broadcast_1d_to_2d_rows(const Tensor<T, D1>& vec) {
-    Tensor<T, D1, D2> result;
-    for (size_t i = 0; i < D1; ++i) {
-        for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(i);
-        }
-    }
-    return result;
-}
-
 // Broadcast addition for vector and matrix
+// Vector [D2] broadcasts to [D1, D2] (NumPy-style: aligned from right)
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator+(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) + mat(i, j);
+            result(i, j) = broadcast_view(i, j) + mat(i, j);
         }
     }
     return result;
@@ -82,10 +43,11 @@ Tensor<T, D1, D2> operator+(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 // Broadcast subtraction for vector and matrix
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator-(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& vec) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = mat(i, j) - vec(j);
+            result(i, j) = mat(i, j) - broadcast_view(i, j);
         }
     }
     return result;
@@ -93,10 +55,11 @@ Tensor<T, D1, D2> operator-(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator-(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) - mat(i, j);
+            result(i, j) = broadcast_view(i, j) - mat(i, j);
         }
     }
     return result;
@@ -105,10 +68,11 @@ Tensor<T, D1, D2> operator-(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& m
 // Broadcast multiplication for vector and matrix
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator*(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) * mat(i, j);
+            result(i, j) = broadcast_view(i, j) * mat(i, j);
         }
     }
     return result;
@@ -122,10 +86,11 @@ Tensor<T, D1, D2> operator*(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 // Broadcast division for vector and matrix
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator/(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& vec) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = mat(i, j) / vec(j);
+            result(i, j) = mat(i, j) / broadcast_view(i, j);
         }
     }
     return result;
@@ -133,20 +98,19 @@ Tensor<T, D1, D2> operator/(const Tensor<T, D1, D2>& mat, const Tensor<T, D2>& v
 
 template<typename T, size_t D1, size_t D2>
 Tensor<T, D1, D2> operator/(const Tensor<T, D2>& vec, const Tensor<T, D1, D2>& mat) {
+    auto broadcast_view = broadcast_vector_to_matrix<T, D1, D2>(vec);
     Tensor<T, D1, D2> result;
     for (size_t i = 0; i < D1; ++i) {
         for (size_t j = 0; j < D2; ++j) {
-            result(i, j) = vec(j) / mat(i, j);
+            result(i, j) = broadcast_view(i, j) / mat(i, j);
         }
     }
     return result;
 }
 
-// Helper function to explicitly broadcast a tensor to a new shape
-template<typename T, size_t D>
-Tensor<T, D, D> broadcast_to_square(const Tensor<T, D>& vec) {
-    return broadcast_1d_to_2d_cols<T, D, D>(vec);
-}
+// Note: For explicit broadcasting, use the operators above or create a BroadcastView.
+// To broadcast a column vector (e.g., [D1] to [D1, D2]), first reshape it to [D1, 1]
+// using expand_dims, then use the broadcasting operators.
 
 // Reshape function for compatible dimensions (total size must match)
 template<typename T, size_t... NewDims, size_t... OldDims>
