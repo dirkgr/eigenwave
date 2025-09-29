@@ -13,7 +13,7 @@ FetchContent_MakeAvailable(googletest)
 # Create test executables
 add_executable(test_tensor test_tensor.cpp)
 add_executable(test_slicing_broadcasting test_slicing_broadcasting.cpp)
-add_executable(test_broadcast_view test_broadcast_view.cpp)
+add_executable(test_broadcasting test_broadcasting.cpp)
 
 # Link against gtest and eigenwave
 target_link_libraries(test_tensor
@@ -30,7 +30,7 @@ target_link_libraries(test_slicing_broadcasting
     gtest
 )
 
-target_link_libraries(test_broadcast_view
+target_link_libraries(test_broadcasting
     PRIVATE
     eigenwave
     gtest_main
@@ -41,4 +41,4 @@ target_link_libraries(test_broadcast_view
 include(GoogleTest)
 gtest_discover_tests(test_tensor)
 gtest_discover_tests(test_slicing_broadcasting)
-gtest_discover_tests(test_broadcast_view)
+gtest_discover_tests(test_broadcasting)
