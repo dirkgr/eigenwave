@@ -43,10 +43,7 @@ jobs:
 
     - name: Run Tests
       working-directory: build
-      run: |
-        # Run tests, excluding known problematic ones
-        # See .github/workflows/known-issues.md for details
-        ctest -C ${{ matrix.build_type }} --verbose --output-on-failure -E "BroadcastView" || echo "Some tests excluded - see known-issues.md"
+      run: ctest -C ${{ matrix.build_type }} --verbose --output-on-failure
 
   coverage:
     runs-on: ubuntu-latest
@@ -67,10 +64,7 @@ jobs:
 
     - name: Run Tests
       working-directory: build
-      run: |
-        # Run tests, excluding known problematic ones
-        # See .github/workflows/known-issues.md for details
-        ctest --verbose --output-on-failure -E "BroadcastView" || echo "Some tests excluded - see known-issues.md"
+      run: ctest --verbose --output-on-failure
 
     - name: Generate Coverage Report
       run: gcovr --root . --exclude 'build/*' --exclude 'tests/*' --exclude '_deps/*' --print-summary --xml coverage.xml
