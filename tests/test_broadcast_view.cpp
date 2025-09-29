@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <eigenwave/tensor.hpp>
-#include <eigenwave/broadcast_view.hpp>
+#include <eigenwave/broadcasting.hpp>
 #include <chrono>
 
 using namespace eigenwave;
