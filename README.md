@@ -52,6 +52,7 @@ make -j
 #include <eigenwave/operations.hpp>
 #include <eigenwave/slicing.hpp>
 #include <eigenwave/broadcasting.hpp>
+#include <eigenwave/concatenate.hpp>
 
 using namespace eigenwave;
 
@@ -125,11 +126,16 @@ int main() {
 - **O(1) broadcast views** - Broadcasting creates views, not copies
 - Automatic broadcasting in arithmetic operations
 - `BroadcastView` - Virtual broadcasting without data duplication
-- `broadcast_1d_to_2d_cols()` - Broadcast vector to matrix columns
-- `broadcast_1d_to_2d_rows()` - Broadcast vector to matrix rows
 - `reshape()` - Change tensor dimensions (preserving size)
 - `expand_dims_front/back()` - Add singleton dimensions
 - `squeeze()` - Remove singleton dimensions
+
+### Concatenation and Stacking
+- `concatenate()` - Join tensors along an existing axis
+- `stack()` - Join tensors along a new axis
+- `hstack()` - Horizontal stack (column-wise for 2D)
+- `vstack()` - Vertical stack (row-wise for 2D)
+- `dstack()` - Depth stack (along third axis)
 
 ## Technical Documentation
 
@@ -224,6 +230,34 @@ auto expanded = expand_dims_front(vec1d);  // Shape: [1, 3]
 auto squeezed = squeeze(expanded);         // Back to shape: [3]
 ```
 
+### Concatenation Examples
+
+```cpp
+// Concatenating 1D tensors
+Tensor<int, 3> vec1{1, 2, 3};
+Tensor<int, 2> vec2{4, 5};
+auto concat = concatenate(vec1, vec2);  // Shape: [5]
+
+// Concatenating 2D tensors along different axes
+Tensor<float, 2, 3> mat1{1, 2, 3, 4, 5, 6};
+Tensor<float, 1, 3> mat2{7, 8, 9};
+auto vconcat = concatenate<0>(mat1, mat2);  // Shape: [3, 3] - along rows
+
+Tensor<float, 2, 2> mat3{1, 2, 3, 4};
+Tensor<float, 2, 1> mat4{5, 6};
+auto hconcat = concatenate<1>(mat3, mat4);  // Shape: [2, 3] - along cols
+
+// Stacking creates a new axis
+Tensor<int, 3> v1{1, 2, 3};
+Tensor<int, 3> v2{4, 5, 6};
+auto stacked = stack(v1, v2);  // Shape: [2, 3]
+
+// Convenience functions
+auto h_result = hstack(vec1, vec2);  // Horizontal concatenation
+auto v_result = vstack(v1, v2);      // Vertical stacking
+auto d_result = dstack(mat3, mat3);  // Depth stacking
+```
+
 ## Design Philosophy
 
 EigenWave prioritizes compile-time safety and zero-cost abstractions. All dimension checking happens at compile time, meaning:
@@ -250,4 +284,3 @@ Planned features for future versions:
 - GPU acceleration support
 - Automatic differentiation
 - Einsum operations
-- Tensor concatenation and stacking
