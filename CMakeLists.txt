@@ -33,4 +33,7 @@ if(BUILD_EXAMPLES)
 
     add_executable(slicing_broadcasting_demo examples/slicing_broadcasting_demo.cpp)
     target_link_libraries(slicing_broadcasting_demo PRIVATE eigenwave)
+
+    add_executable(concatenate_demo examples/concatenate_demo.cpp)
+    target_link_libraries(concatenate_demo PRIVATE eigenwave)
 endif()
