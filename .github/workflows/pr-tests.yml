@@ -25,10 +25,7 @@ jobs:
 
     - name: Run Tests
       working-directory: build
-      run: |
-        # Run tests, excluding known problematic ones
-        # See .github/workflows/known-issues.md for details
-        ctest -C Release --verbose --output-on-failure -E "BroadcastView" || echo "Some tests excluded - see known-issues.md"
+      run: ctest -C Release --verbose --output-on-failure
 
   lint:
     name: Code Style Check

@@ -28,37 +28,36 @@ private:
 
     // Compute effective strides for broadcasting
     void compute_broadcast_strides() {
-        // Original strides (for the source tensor)
-        std::array<size_t, orig_ndim> orig_strides{};
-        if constexpr (orig_ndim > 0) {
-            orig_strides[orig_ndim - 1] = 1;
-            if constexpr (orig_ndim > 1) {
-                for (int i = static_cast<int>(orig_ndim) - 2; i >= 0; --i) {
-                    orig_strides[i] = orig_strides[i + 1] * orig_shape[i + 1];
-                }
-            }
-        }
-
-        // Compute broadcast strides
-        // Start from the right and align dimensions
-        size_t orig_idx = orig_ndim - 1;
-        for (int i = broadcast_ndim - 1; i >= 0; --i) {
-            if (orig_idx < orig_ndim) {
-                if (orig_shape[orig_idx] == broadcast_shape[i]) {
-                    // Dimension matches - use original stride
-                    effective_strides_[i] = orig_strides[orig_idx];
-                } else if (orig_shape[orig_idx] == 1) {
-                    // Broadcasting a dimension of size 1 - stride is 0
-                    effective_strides_[i] = 0;
-                } else if (broadcast_shape[i] == 1) {
-                    // Target dimension is 1 (shouldn't happen in broadcasting)
-                    effective_strides_[i] = orig_strides[orig_idx];
-                }
-                if (orig_idx > 0) orig_idx--;
-            } else {
-                // No corresponding dimension in original tensor
-                // This means we're broadcasting a smaller tensor to more dimensions
+        // Special case for vector to matrix broadcasting [D2] -> [D1, D2]
+        if constexpr (orig_ndim == 1 && broadcast_ndim == 2) {
+            // First dimension (rows): stride 0 means same vector for each row
+            // Second dimension (cols): stride 1 for normal vector progression
+            effective_strides_[0] = 0;
+            effective_strides_[1] = 1;
+        } else {
+            // General case - align dimensions from the right
+            // Fill with zeros first
+            for (size_t i = 0; i < broadcast_ndim; ++i) {
                 effective_strides_[i] = 0;
+            }
+
+            // Calculate strides for dimensions that exist in original
+            if constexpr (orig_ndim > 0) {
+                size_t stride = 1;
+                int orig_idx = orig_ndim - 1;
+                int broadcast_idx = broadcast_ndim - 1;
+
+                while (orig_idx >= 0 && broadcast_idx >= 0) {
+                    if (orig_shape[orig_idx] == broadcast_shape[broadcast_idx]) {
+                        effective_strides_[broadcast_idx] = stride;
+                        stride *= orig_shape[orig_idx];
+                    } else if (orig_shape[orig_idx] == 1) {
+                        // Broadcasting dimension of size 1 - stride is 0
+                        effective_strides_[broadcast_idx] = 0;
+                    }
+                    orig_idx--;
+                    broadcast_idx--;
+                }
             }
         }
     }
@@ -91,23 +90,18 @@ public:
     Tensor<T, BroadcastDims...> materialize() const {
         Tensor<T, BroadcastDims...> result;
 
-        // Copy all elements using the broadcast view
-        size_t flat_idx = 0;
-        materialize_recursive<0>(result.data(), flat_idx);
+        // Simple iterative approach for all dimensions
+        size_t total_elements = 1;
+        for (size_t dim : broadcast_shape) {
+            total_elements *= dim;
+        }
 
-        return result;
-    }
-
-private:
-    // Helper to materialize the view recursively
-    template<size_t Dim>
-    void materialize_recursive(T* output, size_t& out_idx) const {
-        if constexpr (Dim == broadcast_ndim) {
-            // Base case - we've indexed all dimensions
+        // Iterate through all output elements
+        for (size_t flat_idx = 0; flat_idx < total_elements; ++flat_idx) {
+            // Convert flat index to multi-dimensional indices
             std::array<size_t, broadcast_ndim> indices{};
-            size_t temp_idx = out_idx;
+            size_t temp_idx = flat_idx;
 
-            // Convert flat index back to multi-dimensional indices
             for (int i = broadcast_ndim - 1; i >= 0; --i) {
                 indices[i] = temp_idx % broadcast_shape[i];
                 temp_idx /= broadcast_shape[i];
@@ -119,13 +113,10 @@ private:
                 src_idx += indices[i] * effective_strides_[i];
             }
 
-            output[out_idx++] = data_ptr_[src_idx];
-        } else {
-            // Recursive case
-            for (size_t i = 0; i < broadcast_shape[Dim]; ++i) {
-                materialize_recursive<Dim + 1>(output, out_idx);
-            }
+            result.data()[flat_idx] = data_ptr_[src_idx];
         }
+
+        return result;
     }
 };
 

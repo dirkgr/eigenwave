@@ -23,29 +23,54 @@ TEST_F(BroadcastViewTest, BroadcastCreationIsConstantTime) {
     for (size_t i = 0; i < 100; ++i) medium_vec(i) = i;
     for (size_t i = 0; i < 1000; ++i) large_vec(i) = i;
 
-    // Time broadcast view creation for each
+    // Repeat the operation many times to get measurable timing
+    const int iterations = 100000;
+
     auto start = high_resolution_clock::now();
-    auto small_broadcast = broadcast_vector_to_matrix<float, 100, 10>(small_vec);
+    for (int i = 0; i < iterations; ++i) {
+        volatile auto small_broadcast = broadcast_vector_to_matrix<float, 100, 10>(small_vec);
+        (void)small_broadcast; // Prevent optimization
+    }
     auto small_time = duration_cast<nanoseconds>(high_resolution_clock::now() - start).count();
 
     start = high_resolution_clock::now();
-    auto medium_broadcast = broadcast_vector_to_matrix<float, 100, 100>(medium_vec);
+    for (int i = 0; i < iterations; ++i) {
+        volatile auto medium_broadcast = broadcast_vector_to_matrix<float, 100, 100>(medium_vec);
+        (void)medium_broadcast; // Prevent optimization
+    }
     auto medium_time = duration_cast<nanoseconds>(high_resolution_clock::now() - start).count();
 
     start = high_resolution_clock::now();
-    auto large_broadcast = broadcast_vector_to_matrix<float, 100, 1000>(large_vec);
+    for (int i = 0; i < iterations; ++i) {
+        volatile auto large_broadcast = broadcast_vector_to_matrix<float, 100, 1000>(large_vec);
+        (void)large_broadcast; // Prevent optimization
+    }
     auto large_time = duration_cast<nanoseconds>(high_resolution_clock::now() - start).count();
 
-    // Times should be roughly similar (within an order of magnitude)
-    // since broadcast view creation is O(1)
-    EXPECT_LT(std::abs(small_time - medium_time), small_time * 10);
-    EXPECT_LT(std::abs(medium_time - large_time), medium_time * 10);
+    // The key test: broadcast view creation should be O(1), meaning time should not
+    // scale with data size. Allow for 2x variation due to measurement noise.
+    // If creation was O(n), large_time would be ~100x small_time
+    double small_avg = static_cast<double>(small_time) / iterations;
+    double medium_avg = static_cast<double>(medium_time) / iterations;
+    double large_avg = static_cast<double>(large_time) / iterations;
+
+    // All averages should be in the same ballpark (within 2x)
+    if (small_avg > 0 && medium_avg > 0 && large_avg > 0) {
+        EXPECT_LT(large_avg / small_avg, 2.0)
+            << "Broadcast view creation time appears to scale with size (not O(1))";
+        EXPECT_LT(medium_avg / small_avg, 2.0)
+            << "Broadcast view creation time appears to scale with size (not O(1))";
+    }
 
     // Verify that broadcast views work correctly
-    EXPECT_FLOAT_EQ(small_broadcast(0, 5), 5.0f);
-    EXPECT_FLOAT_EQ(small_broadcast(50, 5), 5.0f);  // Same value in different rows
-    EXPECT_FLOAT_EQ(medium_broadcast(0, 50), 50.0f);
-    EXPECT_FLOAT_EQ(large_broadcast(0, 500), 500.0f);
+    auto test_broadcast_small = broadcast_vector_to_matrix<float, 100, 10>(small_vec);
+    auto test_broadcast_medium = broadcast_vector_to_matrix<float, 100, 100>(medium_vec);
+    auto test_broadcast_large = broadcast_vector_to_matrix<float, 100, 1000>(large_vec);
+
+    EXPECT_FLOAT_EQ(test_broadcast_small(0, 5), 5.0f);
+    EXPECT_FLOAT_EQ(test_broadcast_small(50, 5), 5.0f);  // Same value in different rows
+    EXPECT_FLOAT_EQ(test_broadcast_medium(0, 50), 50.0f);
+    EXPECT_FLOAT_EQ(test_broadcast_large(0, 500), 500.0f);
 }
 
 // Test broadcast view correctness
