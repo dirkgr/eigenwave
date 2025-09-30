@@ -15,6 +15,7 @@ add_executable(test_tensor test_tensor.cpp)
 add_executable(test_slicing_broadcasting test_slicing_broadcasting.cpp)
 add_executable(test_broadcasting test_broadcasting.cpp)
 add_executable(test_concatenate test_concatenate.cpp)
+add_executable(test_matmul test_matmul.cpp)
 
 # Link against gtest and eigenwave
 target_link_libraries(test_tensor
@@ -45,9 +46,17 @@ target_link_libraries(test_concatenate
     gtest
 )
 
+target_link_libraries(test_matmul
+    PRIVATE
+    eigenwave
+    gtest_main
+    gtest
+)
+
 # Add test discovery
 include(GoogleTest)
 gtest_discover_tests(test_tensor)
 gtest_discover_tests(test_slicing_broadcasting)
 gtest_discover_tests(test_broadcasting)
 gtest_discover_tests(test_concatenate)
+gtest_discover_tests(test_matmul)
