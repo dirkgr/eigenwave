@@ -53,6 +53,7 @@ make -j
 #include <eigenwave/slicing.hpp>
 #include <eigenwave/broadcasting.hpp>
 #include <eigenwave/concatenate.hpp>
+#include <eigenwave/matmul.hpp>
 
 using namespace eigenwave;
 
@@ -136,6 +137,16 @@ int main() {
 - `hstack()` - Horizontal stack (column-wise for 2D)
 - `vstack()` - Vertical stack (row-wise for 2D)
 - `dstack()` - Depth stack (along third axis)
+
+### Matrix Operations
+- `matmul()` - Matrix multiplication with compile-time dimension checking
+- `dot()` - Dot product (flexible based on input dimensions)
+- `transpose()` / `T()` - Matrix transpose
+- `inner()` - Inner product (generalized dot)
+- `outer()` - Outer product of vectors
+- `eye()` / `identity()` - Create identity matrix
+- `diag()` - Create diagonal matrix or extract diagonal
+- `trace()` - Sum of diagonal elements
 
 ## Technical Documentation
 
@@ -258,6 +269,34 @@ auto v_result = vstack(v1, v2);      // Vertical stacking
 auto d_result = dstack(mat3, mat3);  // Depth stacking
 ```
 
+### Matrix Multiplication Examples
+
+```cpp
+// Matrix multiplication
+Tensor<float, 2, 3> A{1, 2, 3, 4, 5, 6};
+Tensor<float, 3, 2> B{7, 8, 9, 10, 11, 12};
+auto C = matmul(A, B);  // Result shape: [2, 2]
+
+// Matrix-vector multiplication
+Tensor<float, 3, 3> M = eye<float, 3>();  // Identity matrix
+Tensor<float, 3> v{1, 2, 3};
+auto result = matmul(M, v);  // Or use dot(M, v)
+
+// Dot products
+Tensor<float, 4> a{1, 2, 3, 4};
+Tensor<float, 4> b{5, 6, 7, 8};
+float scalar = dot(a, b);  // 1D·1D returns scalar
+
+// Transpose
+Tensor<int, 2, 3> original{1, 2, 3, 4, 5, 6};
+auto transposed = transpose(original);  // Shape: [3, 2]
+
+// Outer product
+Tensor<int, 3> u{1, 2, 3};
+Tensor<int, 4> v{4, 5, 6, 7};
+auto outer_prod = outer(u, v);  // Shape: [3, 4]
+```
+
 ## Design Philosophy
 
 EigenWave prioritizes compile-time safety and zero-cost abstractions. All dimension checking happens at compile time, meaning:
@@ -277,10 +316,10 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 ## Future Enhancements
 
 Planned features for future versions:
-- Matrix multiplication and dot products
 - More advanced broadcasting patterns
 - Dynamic tensor views with runtime dimensions
-- More advanced linear algebra operations
+- More advanced linear algebra operations (LU, QR, SVD)
 - GPU acceleration support
 - Automatic differentiation
 - Einsum operations
+- Optimized matrix multiplication (blocking, SIMD)

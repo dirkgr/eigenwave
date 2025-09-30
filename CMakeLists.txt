@@ -36,4 +36,7 @@ if(BUILD_EXAMPLES)
 
     add_executable(concatenate_demo examples/concatenate_demo.cpp)
     target_link_libraries(concatenate_demo PRIVATE eigenwave)
+
+    add_executable(matmul_demo examples/matmul_demo.cpp)
+    target_link_libraries(matmul_demo PRIVATE eigenwave)
 endif()
